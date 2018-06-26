@@ -29,14 +29,11 @@ The library is programmed in python. It uses `virtualenv` and `pip`.
         - Extract the contents of the zip.
         - Copy the contents to `C:\Git\ming64\`. Merging the folders. **DO NOT** overwrite/replace anything.
         - Restart Git Bash.
-* **Oracle Instant client**
-    - The library supports only Oracle datbase as of now.
-    - You need to download the instant client drivers and place them the directory, as the name of your OS.
-    - if you have oracle instant client installed, you can skip the process. Just make sure all the path variables are correctly assigned.
+
 
 ## How does the tool work?
 
-There are three different folders named `mac` and`windows`. Because Oracle needs specific drivers for each operating system, they has to be in different folders. These folder therefore, contains the respective drivers and the `run.py` script, to run the sql scripts.
+There are three different folders named `mac`, `windows` and `linux`. Because Oracle needs specific drivers for each operating system, they has to be in different folders. These folder therefore, contains the respective drivers and the `run.py` script, to run the sql scripts.
 
 Another folder named **db** should contain two child folders, **init** and **additions**. If this is not present in your `da-database` directory, please create them, otherwise the script will throw an error, after not finding those folders.
 
@@ -52,7 +49,8 @@ da-database
 │   │───init
 │   └───additions
 │───mac
-└───windows
+│───windows
+└───linux
 ```
 
 ### Install python tool
@@ -70,6 +68,7 @@ da-database
 │   └───additions
 │───mac
 │───windows
+│───linux
 └───venv
 
 ```
@@ -82,7 +81,7 @@ This is to make sure that the main connection string file stays in your local re
 
 ### Run the tool
 
-When the `make install`/`make wininstall` command is run successfully, you should be able to run `make run`/`make winrun` command through terminal/GitBash. 
+When the `make install`/`make wininstall` command is run successfully, you should be able to run `make run`/`make winrun`/`make linuxrun` command through terminal/GitBash. 
 
 - The program first looks for connection string. This should be provided in **connection.ini** file. An example connection string is provided below:
 
@@ -90,8 +89,8 @@ When the `make install`/`make wininstall` command is run successfully, you shoul
         [Database]
         url = localhost
         port = 1521
-        username = user
-        password = password
+        username = testuser
+        password = sales
         service = xe
         
 - Next the program will look for SQL files in folder `db/init/`. The files will be arranged in the increasing order and executed. You can place all the SQL scripts in this folder which you want to run before any other scripts in the additions folder.
@@ -116,3 +115,5 @@ In order to collaborate the database changes with other team members effectively
 ## 
 
 **That's it. The tool should run without problems. Support for postgreSQL will be added once we all make the switch.**
+
+**In case of any problems or suggestions, feel free to contact me [Varij Kapil](mailto:varij.kapil@it-manufactory.com)** 
