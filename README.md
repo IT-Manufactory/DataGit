@@ -97,7 +97,7 @@ When the `make install`/`make wininstall` command is run successfully, you shoul
 - Next the program will look for SQL files in folder `db/init/`. The files will be arranged in the increasing order and executed. You can place all the SQL scripts in this folder which you want to run before any other scripts in the additions folder.
 
 - Finally the program will look for SQL files in folder `db/additions/`. The files will be arranged in a similar fashion as `init` folder.
-- The scripts saves the files it last ran in the `connection.ini` file. So next time when a new script is added, it will only run the new files and not the previous files.
+- The scripts saves the files it last ran in the `DATA_MIGRATION` Table in your database **DO NOT DELETE THIS TABLE**. So next time when a new script is added, it will only run the new files and not the previous files.
 
 ### Placing SQL files in the repository
 
@@ -105,6 +105,8 @@ In order to collaborate the database changes with other team members effectively
 
 - **`init`** folder should only contain initialization scripts. All SQL files that contain addtions (or removals, alters etc) should be placed in **`additions`** folder.
 - Use only sql files. `.dmp` files are not yet supported.
+- **Do not use the username as prefix in queries** eg. `ALTER TABLE "APPUSER.ACCOUNT" ...`. You will provide the name of the database user when connecting to the database, therefore you **DO NOT NEED** to add this username in the query. **This is to avoid exceptions when other team members have a different username for the database**
+
 - SQL statements in each file should be separated using a **semincolon `:`**. **`/`** is not supported as it causes problems with string splitting between the sql statements and actual database entry strings.
 - **Use proper naming convention for the files**: 
     -  In order for your SQL scripts to work properly, the files should be named as follows:

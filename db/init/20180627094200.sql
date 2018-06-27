@@ -1,0 +1,2 @@
+create table DATA_MIGRATION (ID NUMBER not null primary key,LASTFILEINIT VARCHAR2(256) default 'init',LASTFILEADDITIONS VARCHAR2(256) default 'additions');
+INSERT INTO DATA_MIGRATION (ID, LASTFILEINIT, LASTFILEADDITIONS) values (1, 'init', 'additions');

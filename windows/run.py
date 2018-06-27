@@ -3,6 +3,7 @@ import configparser
 import logging
 import cx_Oracle
 import sqlparse
+import sys
 
 log = logging.getLogger()
 log.setLevel(logging.INFO)
@@ -19,20 +20,7 @@ class Operator:
 
         self.config_file = None
         self.connection = self._create_connection(self._read_db_configuration())
-
-    def start_operations(self):
-        print("********************************************* \n*********************************************")
-        print("Starting Init Folder")
-        self._execute_init_scripts()
-        print("Completed Init Folder")
-        print("********************************************* \n*********************************************")
-        print("Starting other scripts")
-        self._execute_added_scripts()
-        print("********************************************* \n*********************************************")
-        print("Completed all scripts\nDatabase migration has been completed. \n"
-              "Check the console if there were any malformed queries that were skipped.")
-        print("********************************************* \n*********************************************")
-        print("********************************************* \n*********************************************")
+        self.initfile, self.additionsfile = self._init_migration_table()
 
     @staticmethod
     def _create_connection(connection_string):
@@ -48,27 +36,7 @@ class Operator:
 
             except Exception as e:
                 log.critical("Unexpected Error: ", e)
-                return None
-
-    @staticmethod
-    def _get_sorted_file_list_from_folder(folder_path, lastfile=None):
-        sql_file_list = os.listdir(folder_path)
-        sql_file_list.sort(reverse=True)
-        if lastfile is not None:
-            trimmed_names = []
-            print("Last file value is not None. Trimming files after this file")
-            for filename in sql_file_list:
-                if filename == lastfile:
-                    trimmed_names.sort()
-                    return trimmed_names
-                else:
-                    trimmed_names.append(filename)
-
-            trimmed_names.sort()
-            return trimmed_names
-        else:
-            sql_file_list.sort()
-            return sql_file_list
+                sys.exit("Connection Could not established with the database")
 
     def _read_db_configuration(self):
         """
@@ -105,35 +73,79 @@ class Operator:
                 "xe\n")
             return None
 
-    def _execute_added_scripts(self):
-        if 'additions' in self.config_file:
-            init_config = self.config_file['additions']
+    def _init_migration_table(self):
+        cursor = self.connection.cursor()
+        query = "SELECT * from DATA_MIGRATION"
 
-            print("Checking files in additions folder")
-            lastfile = init_config.get('lastfile')
-            list_of_files = self._get_sorted_file_list_from_folder(ADDITIONS_FOLDER_PATH, lastfile)
-            if list_of_files is not None:
-                print("found files")
-                self._perform_sql_operations(ADDITIONS_FOLDER_PATH, list_of_files, 'additions')
-        else:
-            list_of_files = self._get_sorted_file_list_from_folder(ADDITIONS_FOLDER_PATH)
+        init = 'init'
+        additions = 'additions'
+
+        try:
+            result = cursor.execute(query).fetchall()
+            cursor.close()
+            self.connection.commit()
+        except Exception as e:
+            log.error("Exception occurred while fetching data from DATA_MIGRATION TABLE. \n {0}".format(e))
+            return init, additions
+
+        if len(result) > 0:
+            # Values are written in the database. Get the last file value for init and additions folder
+            for value in result:
+                init = value[1]
+                additions = value[2]
+
+                print("ID: {0}, LASTFILEINIT: {1}, LASTFILEADDITIONS: {2}".format(value[0], value[1], value[2]))
+
+            return init, additions
+
+    def start_operations(self):
+        print("********************************************* \n*********************************************")
+        print("Starting Init Folder")
+        self._execute_init_scripts()
+        print("Completed Init Folder")
+        print("********************************************* \n*********************************************")
+        print("Starting other scripts")
+        print("********************************************* \n*********************************************")
+        self._execute_added_scripts()
+        print("Completed all scripts\nDatabase migration has been completed. \n"
+              "Check the console if there were any malformed queries that were skipped.")
+        print("********************************************* \n*********************************************")
+        print("********************************************* \n*********************************************")
+
+    def _execute_added_scripts(self):
+
+        list_of_files = self._get_sorted_file_list_from_folder(ADDITIONS_FOLDER_PATH, self.additionsfile)
+        if list_of_files is not None:
+            print("found files")
             self._perform_sql_operations(ADDITIONS_FOLDER_PATH, list_of_files, 'additions')
 
     def _execute_init_scripts(self):
 
-        if 'init' in self.config_file:
-            init_config = self.config_file['init']
-
-            print("Checking files in init folder")
-            lastfile = init_config.get('lastfile')
-            list_of_files = self._get_sorted_file_list_from_folder(INIT_FOLDER_PATH, lastfile)
-            if list_of_files is not None:
-                print("found files")
-                self._perform_sql_operations(INIT_FOLDER_PATH, list_of_files, 'init')
-        else:
-            print("No init value found in configuration file")
-            list_of_files = self._get_sorted_file_list_from_folder(INIT_FOLDER_PATH)
+        print("Checking files in init folder")
+        list_of_files = self._get_sorted_file_list_from_folder(INIT_FOLDER_PATH, self.initfile)
+        if list_of_files is not None:
+            print("found files")
             self._perform_sql_operations(INIT_FOLDER_PATH, list_of_files, 'init')
+
+    @staticmethod
+    def _get_sorted_file_list_from_folder(folder_path, lastfile=None):
+        sql_file_list = os.listdir(folder_path)
+        sql_file_list.sort(reverse=True)
+        if lastfile is not None or lastfile != 'init' or lastfile != 'additions':
+            trimmed_names = []
+            print("Last file value is not None. Trimming files after this file")
+            for filename in sql_file_list:
+                if filename == lastfile:
+                    trimmed_names.sort()
+                    return trimmed_names
+                else:
+                    trimmed_names.append(filename)
+
+            trimmed_names.sort()
+            return trimmed_names
+        else:
+            sql_file_list.sort()
+            return sql_file_list
 
     def _perform_sql_operations(self, folder_path, files, section):
 
@@ -158,22 +170,30 @@ class Operator:
                             try:
                                 cursor.execute(query)
                                 cursor.close()
+                                self.connection.commit()
                                 # print("Successfully executed query: {0}".format(query))
                             except Exception as e:
                                 log.warning(" Skipping the query : {0}\n Due to error: {1} \n".format(query, e))
 
-                    self._write_to_config_file(section, 'lastfile', file)
+                    self._write_to_config_file(section, file)
 
-            print("Finished file {0}".format(file))
+                print("Finished file {0}".format(file))
 
-    def _write_to_config_file(self, section_name, property_name, property_value):
-        if section_name not in self.config_file:
-            self.config_file[section_name] = {}
+    def _write_to_config_file(self, section_name, lastfile_name):
 
-        self.config_file[section_name][property_name] = property_value
+        if section_name == "init":
+            query = f"UPDATE DATA_MIGRATION SET LASTFILEINIT = '{lastfile_name}' WHERE ID = 1"
+        else:
+            query = f"UPDATE DATA_MIGRATION SET LASTFILEADDITIONS = '{lastfile_name}' WHERE ID = 1"
 
-        with open(CONFIG_FILE_PATH, 'w') as configfile:
-            self.config_file.write(configfile)
+        cursor = self.connection.cursor()
+        try:
+            cursor.execute(query)
+            cursor.close()
+            self.connection.commit()
+        except Exception as e:
+            log.critical("Error saving the last file executed to the database.\n Please check the logs and update the "
+                         "database entry manually \n Exception: {0}".format(e))
 
     def destruct(self):
         if self.connection is not None:
