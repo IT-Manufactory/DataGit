@@ -115,4 +115,4 @@ In order to collaborate the database changes with other team members effectively
 - Once you commit and push qn SQL file. **Do not make any changes in that file.** It is possible that others may have already used that file on their system and any changes you make will not be executed on their system.
 ## 
 
-**That's it. The tool should run without problems. Support for postgreSQL will be added once we all make the switch.**
+**That's it. The tool should run without problems. Support for postgreSQL will be added soon.**
